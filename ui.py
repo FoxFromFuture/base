@@ -8,7 +8,67 @@ def hello(event=None):
     print('hello')
 
 
+def runAdd():
+    def add():
+        print("hello")
+        print(entries) # TODO
+        add_window.destroy()
+    cur.execute(f"SELECT * FROM {current_state} LIMIT 0;")
+    colnames = [cols[0] for cols in cur.description]
+    print(colnames)
+
+    add_window = Toplevel(main)
+    add_window.title("Add")
+    add_window.resizable(False, False)
+    add_window.iconphoto(False, PhotoImage(file="src/logo.png"))
+
+    entries = []
+
+    count = 0
+    for col in colnames:
+        label = Label(add_window, text=col)
+        label.grid(row=count, column=0)
+
+        entries.append(Entry(add_window, width=20))
+        entries[-1].grid(row=count, column=1)
+
+        count += 1
+
+    add_b = Button(add_window, text="Add", command=add, width=10)
+    add_b.grid(row=count, column=0, columnspan=2, pady=5)
+
+    add_window.mainloop()
+
+
+def runExit():
+    exit()
+
+
+# def connectToDatabase():
+#     global flag_connect
+#     try:
+#         conn = psycopg2.connect(
+#             host='localhost',
+#             database='ifruits',
+#             user='bool',
+#             password='bool'
+#         )
+#     except psycopg2.OperationalError:
+#         conn = psycopg2.connect(
+#             host='localhost',
+#             database='postgres',
+#             user='bool',
+#             password='bool'
+#         )
+#
+#         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+#         cur = conn.cursor()
+#         cur.execute("CREATE DATABASE ifruits;")
+#     flag_connect = True
+#     entrance.destroy()
+
 def printTable(event=None):
+    global current_state
     cur.execute(f"SELECT * FROM {event} LIMIT 0;")
     colnames = [cols[0] for cols in cur.description]
     print(colnames)
@@ -24,7 +84,7 @@ def printTable(event=None):
     for col in colnames:
         tab.column(col)
     for col in colnames:
-        tab.heading(col, text=col, anchor="center")
+        tab.heading(col, text=col, anchor=CENTER)
 
     iid_counter = 0
     cur.execute(f"SELECT * FROM {event}")
@@ -33,6 +93,31 @@ def printTable(event=None):
         tab.insert(parent='', index='end', text='', iid=iid_counter, values=list(col))
         iid_counter += 1
 
+    current_state = event
+
+
+# create db
+# entrance = Tk()
+# entrance.title("Log...")
+# entrance.geometry("300x150")
+# entrance.resizable(False, False)
+# entrance.iconphoto(False, PhotoImage(file="src/logo.png"))
+# flag_connect = False
+#
+# entrance_frame = Frame(entrance)
+#
+# login_button = Button(entrance_frame, text="Log in to the database", command=connectToDatabase)
+# login_button.pack(anchor=CENTER)
+#
+# hint_text = Label(text="NOTE: If database doesn't exist, it would be created")
+# hint_text.pack(side=BOTTOM)
+#
+# entrance_frame.pack(side=TOP, expand=True)
+#
+# entrance.mainloop()
+#
+# if not flag_connect:
+#     exit(0)
 
 conn = psycopg2.connect(
     host='localhost',
@@ -43,25 +128,14 @@ conn = psycopg2.connect(
 
 conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 cur = conn.cursor()
-cur.execute("""SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'""")
+cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
 tables = [table[0] for table in cur.fetchall()]
-
-# try:
-#     cur.execute("""CREATE DATABASE tunes;""")
-# except psycopg2.errors.DuplicateDatabase:
-#     print("Already here")
-#
-# conn = psycopg2.connect(
-#     host='localhost',
-#     database='tunes',
-#     user='bool',
-#     password='bool'
-# )
-
 
 main = Tk()
 main.title("tunes")
-main.geometry("1300x500")
+main.geometry("1000x500")
+main.resizable(False, False)
+main.iconphoto(False, PhotoImage(file="src/logo.png"))
 
 option_frame = Frame(main)
 
@@ -71,7 +145,7 @@ option = OptionMenu(option_frame, choose, *tables, command=printTable)
 option.pack(side=LEFT)
 
 # main buttons
-add_button = Button(option_frame, text="Add", command=hello, width=10)
+add_button = Button(option_frame, text="Add", command=runAdd, width=10)
 add_button.pack(side=LEFT)
 
 edit_button = Button(option_frame, text="Edit", command=hello, width=10)
@@ -86,8 +160,12 @@ add_button.pack(side=LEFT)
 add_button = Button(option_frame, text="Find in", command=hello, width=10)
 add_button.pack(side=LEFT)
 
+exit_button = Button(option_frame, text="Exit", command=runExit, width=10)
+exit_button.pack(side=RIGHT)
+
 option_frame.pack(side=TOP)
 
+# table
 tree_frame = Frame(main)
 tab = ttk.Treeview(tree_frame)
 tree_scroll_y = Scrollbar(main, orient=VERTICAL)
@@ -103,6 +181,8 @@ tab.pack(fill=BOTH, expand=1)
 
 tree_frame.pack(side=TOP, fill=BOTH, expand=1)
 
+current_state = "track_list"
+print(current_state)
 printTable("track_list")
 main.mainloop()
 cur.close()
