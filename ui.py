@@ -10,12 +10,17 @@ def hello(event=None):
 
 def runAdd():
     def add():
-        print("hello")
-        print(entries) # TODO
+        entries_get = []
+        for i in range(len(entries)):
+            entries_get.append(entries[i].get())
+        entries_get = tuple(entries_get)
+        cur.execute(f"INSERT INTO {current_state} {'(%s)' % ', '.join(map(str, colnames))} VALUES {entries_get};")
+        printTable(current_state)
         add_window.destroy()
+    global current_state
     cur.execute(f"SELECT * FROM {current_state} LIMIT 0;")
     colnames = [cols[0] for cols in cur.description]
-    print(colnames)
+    colnames.pop(0)
 
     add_window = Toplevel(main)
     add_window.title("Add")
@@ -29,13 +34,14 @@ def runAdd():
         label = Label(add_window, text=col)
         label.grid(row=count, column=0)
 
-        entries.append(Entry(add_window, width=20))
+        entries.append(Entry(add_window, width=20, font="Arial 9"))
         entries[-1].grid(row=count, column=1)
 
         count += 1
 
     add_b = Button(add_window, text="Add", command=add, width=10)
     add_b.grid(row=count, column=0, columnspan=2, pady=5)
+    colnames = tuple(colnames)
 
     add_window.mainloop()
 
@@ -44,28 +50,28 @@ def runExit():
     exit()
 
 
-# def connectToDatabase():
-#     global flag_connect
-#     try:
-#         conn = psycopg2.connect(
-#             host='localhost',
-#             database='ifruits',
-#             user='bool',
-#             password='bool'
-#         )
-#     except psycopg2.OperationalError:
-#         conn = psycopg2.connect(
-#             host='localhost',
-#             database='postgres',
-#             user='bool',
-#             password='bool'
-#         )
-#
-#         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-#         cur = conn.cursor()
-#         cur.execute("CREATE DATABASE ifruits;")
-#     flag_connect = True
-#     entrance.destroy()
+def connectToDatabase():
+    global flag_connect
+    try:
+        conn = psycopg2.connect(
+            host='localhost',
+            database='ifruits',
+            user='bool',
+            password='bool'
+        )
+    except psycopg2.OperationalError:
+        conn = psycopg2.connect(
+            host='localhost',
+            database='postgres',
+            user='bool',
+            password='bool'
+        )
+
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = conn.cursor()
+        cur.execute("CREATE DATABASE ifruits;")
+    flag_connect = True
+    entrance.destroy()
 
 def printTable(event=None):
     global current_state
@@ -87,7 +93,12 @@ def printTable(event=None):
         tab.heading(col, text=col, anchor=CENTER)
 
     iid_counter = 0
-    cur.execute(f"SELECT * FROM {event}")
+    if event == "track_list":
+        cur.execute("SELECT t_l.track_id AS Track_ID, t_l.track_title AS Title, al.album_title AS Album, t_l.duration AS Duration, aut.name AS Author FROM track_list t_l LEFT JOIN album al ON t_l.album_id = al.album_id LEFT JOIN author aut ON t_l.author_id = aut.author_id;")
+    elif event == "my_music":
+        cur.execute("SELECT my.mus_id, iu.username, t_l.track_title FROM my_music my JOIN iuser iu ON my.user_id = iu.user_id JOIN track_list t_l ON my.track_id = t_l.track_id;")
+    else:
+        cur.execute(f"SELECT * FROM {event}")
     result = cur.fetchall()
     for col in result:
         tab.insert(parent='', index='end', text='', iid=iid_counter, values=list(col))
@@ -97,27 +108,29 @@ def printTable(event=None):
 
 
 # create db
-# entrance = Tk()
-# entrance.title("Log...")
-# entrance.geometry("300x150")
-# entrance.resizable(False, False)
-# entrance.iconphoto(False, PhotoImage(file="src/logo.png"))
-# flag_connect = False
-#
-# entrance_frame = Frame(entrance)
-#
-# login_button = Button(entrance_frame, text="Log in to the database", command=connectToDatabase)
-# login_button.pack(anchor=CENTER)
-#
-# hint_text = Label(text="NOTE: If database doesn't exist, it would be created")
-# hint_text.pack(side=BOTTOM)
-#
-# entrance_frame.pack(side=TOP, expand=True)
-#
-# entrance.mainloop()
-#
-# if not flag_connect:
-#     exit(0)
+entrance = Tk()
+entrance.title("Logging...")
+entrance.geometry("300x150")
+entrance.resizable(False, False)
+entrance.iconphoto(False, PhotoImage(file="src/logo.png"))
+flag_connect = False
+
+entrance_frame = Frame(entrance)
+
+login_button = Button(entrance_frame, text="Log in to the database", command=connectToDatabase)
+login_button.pack(anchor=CENTER)
+
+hint_text = Label(text="NOTE: If database doesn't exist, it would be created", font="Arial 9")
+hint_text.pack(side=BOTTOM)
+
+entrance_frame.pack(side=TOP, expand=True)
+
+entrance.mainloop()
+
+
+
+if not flag_connect:
+    exit(0)
 
 conn = psycopg2.connect(
     host='localhost',
@@ -181,6 +194,7 @@ tab.pack(fill=BOTH, expand=1)
 
 tree_frame.pack(side=TOP, fill=BOTH, expand=1)
 
+current_user = None
 current_state = "track_list"
 print(current_state)
 printTable("track_list")
