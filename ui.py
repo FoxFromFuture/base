@@ -15,8 +15,9 @@ def runAdd():
             entries_get.append(entries[i].get())
         entries_get = tuple(entries_get)
         cur.execute(f"INSERT INTO {current_state} {'(%s)' % ', '.join(map(str, colnames))} VALUES {entries_get};")
-        printTable(current_state)
         add_window.destroy()
+        printTable(current_state)
+
     global current_state
     cur.execute(f"SELECT * FROM {current_state} LIMIT 0;")
     colnames = [cols[0] for cols in cur.description]
@@ -41,9 +42,63 @@ def runAdd():
 
     add_b = Button(add_window, text="Add", command=add, width=10)
     add_b.grid(row=count, column=0, columnspan=2, pady=5)
+
     colnames = tuple(colnames)
 
     add_window.mainloop()
+
+
+def runEdit():
+    def edit():
+        query = f"UPDATE {current_state} SET "
+        for i in range(len(colnames)):
+            if i == len(colnames) - 1:
+                query += f"{colnames[i]} = '{entries[i].get()}' "
+            else:
+                query += f"{colnames[i]} = '{entries[i].get()}', "
+        query += f"WHERE {cond[0]} = {cond[1]};"
+
+        cur.execute(query)
+        edit_window.destroy()
+        printTable(current_state)
+
+    global current_state
+    cond = []
+
+    cur.execute(f"SELECT * FROM {current_state} LIMIT 0;")
+    colnames = [cols[0] for cols in cur.description]
+    cond.append(colnames[0])
+    colnames.pop(0)
+
+    selected = tab.focus()
+    if len(selected) == 0:
+        return
+    selected = list(tab.item(selected)['values'])
+    cond.append(selected[0])
+    selected.pop(0)
+
+    edit_window = Toplevel(main)
+    edit_window.title("Edit")
+    edit_window.resizable(False, False)
+    edit_window.iconphoto(False, PhotoImage(file="src/logo.png"))
+
+    entries = []
+
+    count = 0
+    i = 0
+    for col in colnames:
+        label = Label(edit_window, text=col)
+        label.grid(row=count, column=0)
+
+        entries.append(Entry(edit_window, width=20, font="Arial 9"))
+        entries[-1].insert(0, str(selected[i]))
+        i += 1
+        entries[-1].grid(row=count, column=1)
+
+        count += 1
+
+    edit_b = Button(edit_window, text="Edit", command=edit, width=10)
+    edit_b.grid(row=count, column=0, columnspan=2, pady=5)
 
 
 def runExit():
@@ -73,6 +128,7 @@ def connectToDatabase():
     flag_connect = True
     entrance.destroy()
 
+
 def printTable(event=None):
     global current_state
     cur.execute(f"SELECT * FROM {event} LIMIT 0;")
@@ -93,12 +149,14 @@ def printTable(event=None):
         tab.heading(col, text=col, anchor=CENTER)
 
     iid_counter = 0
-    if event == "track_list":
-        cur.execute("SELECT t_l.track_id AS Track_ID, t_l.track_title AS Title, al.album_title AS Album, t_l.duration AS Duration, aut.name AS Author FROM track_list t_l LEFT JOIN album al ON t_l.album_id = al.album_id LEFT JOIN author aut ON t_l.author_id = aut.author_id;")
-    elif event == "my_music":
-        cur.execute("SELECT my.mus_id, iu.username, t_l.track_title FROM my_music my JOIN iuser iu ON my.user_id = iu.user_id JOIN track_list t_l ON my.track_id = t_l.track_id;")
-    else:
-        cur.execute(f"SELECT * FROM {event}")
+    # if event == "track_list":
+    #     cur.execute(
+    #         "SELECT t_l.track_id AS Track_ID, t_l.track_title AS Title, al.album_title AS Album, t_l.duration AS Duration, aut.name AS Author FROM track_list t_l LEFT JOIN album al ON t_l.album_id = al.album_id LEFT JOIN author aut ON t_l.author_id = aut.author_id;")
+    # elif event == "my_music":
+    #     cur.execute(
+    #         "SELECT my.mus_id, iu.username, t_l.track_title FROM my_music my JOIN iuser iu ON my.user_id = iu.user_id JOIN track_list t_l ON my.track_id = t_l.track_id;")
+    # else:
+    cur.execute(f"SELECT * FROM {event} ORDER BY {colnames[0]};")
     result = cur.fetchall()
     for col in result:
         tab.insert(parent='', index='end', text='', iid=iid_counter, values=list(col))
@@ -127,8 +185,6 @@ entrance_frame.pack(side=TOP, expand=True)
 
 entrance.mainloop()
 
-
-
 if not flag_connect:
     exit(0)
 
@@ -143,6 +199,9 @@ conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 cur = conn.cursor()
 cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
 tables = [table[0] for table in cur.fetchall()]
+
+current_user = None
+current_state = "track_list"
 
 main = Tk()
 main.title("tunes")
@@ -161,7 +220,7 @@ option.pack(side=LEFT)
 add_button = Button(option_frame, text="Add", command=runAdd, width=10)
 add_button.pack(side=LEFT)
 
-edit_button = Button(option_frame, text="Edit", command=hello, width=10)
+edit_button = Button(option_frame, text="Edit", command=runEdit, width=10)
 edit_button.pack(side=LEFT)
 
 delete_button = Button(option_frame, text="Delete", command=hello, width=10)
@@ -194,10 +253,8 @@ tab.pack(fill=BOTH, expand=1)
 
 tree_frame.pack(side=TOP, fill=BOTH, expand=1)
 
-current_user = None
-current_state = "track_list"
 print(current_state)
-printTable("track_list")
+printTable(current_state)
 main.mainloop()
 cur.close()
 print("Ended")
