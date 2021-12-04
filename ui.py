@@ -101,6 +101,28 @@ def runEdit():
     edit_b.grid(row=count, column=0, columnspan=2, pady=5)
 
 
+def runDelete():
+    global current_state
+
+    cur.execute(f"SELECT * FROM {current_state} LIMIT 0;")
+    colnames = [cols[0] for cols in cur.description]
+
+    selected = tab.focus()
+    if len(selected) == 0:
+        return
+    selected = list(tab.item(selected)['values'])
+
+    cur.execute(f"DELETE FROM {current_state} WHERE {colnames[0]} = {selected[0]};")
+    printTable(current_state)
+
+
+def runClearAll():
+    global current_state
+
+    cur.execute(f"DELETE * FROM {current_state}")
+    printTable(current_state)
+
+
 def runExit():
     exit()
 
@@ -223,10 +245,10 @@ add_button.pack(side=LEFT)
 edit_button = Button(option_frame, text="Edit", command=runEdit, width=10)
 edit_button.pack(side=LEFT)
 
-delete_button = Button(option_frame, text="Delete", command=hello, width=10)
+delete_button = Button(option_frame, text="Delete", command=runDelete, width=10)
 delete_button.pack(side=LEFT)
 
-add_button = Button(option_frame, text="Clear all", command=hello, width=10)
+add_button = Button(option_frame, text="Clear all", command=runClearAll, width=10)
 add_button.pack(side=LEFT)
 
 add_button = Button(option_frame, text="Find in", command=hello, width=10)
@@ -235,7 +257,7 @@ add_button.pack(side=LEFT)
 exit_button = Button(option_frame, text="Exit", command=runExit, width=10)
 exit_button.pack(side=RIGHT)
 
-option_frame.pack(side=TOP)
+option_frame.pack(side=TOP, fill=X)
 
 # table
 tree_frame = Frame(main)
