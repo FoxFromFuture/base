@@ -1,8 +1,48 @@
-# CREATE TABLE my_music(
-# mus_id BIGSERIAL NOT NULL PRIMARY KEY,
-# user_id INTEGER REFERENCES iuser(user_id),
-# track_id INTEGER REFERENCES track_list(track_id)
-# );
+my_music_query = """
+CREATE TABLE my_music(
+mus_id BIGSERIAL NOT NULL PRIMARY KEY,
+user_id INTEGER REFERENCES iuser(user_id),
+track_id INTEGER REFERENCES track_list(track_id)
+);
+
+CREATE OR REPLACE FUNCTION mymus_count_trigger_func()
+RETURNS TRIGGER
+AS $$
+BEGIN
+	UPDATE iuser
+	SET my_tracks_count = my_tracks_count + 1
+	WHERE iuser.user_id =
+	(SELECT user_id FROM my_music WHERE mus_id = (SELECT MAX(mus_id) FROM my_music));
+
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER mymus_count_trigger
+AFTER INSERT
+ON my_music
+FOR EACH ROW
+EXECUTE PROCEDURE mymus_count_trigger_func();
+
+CREATE OR REPLACE FUNCTION mymus_count_trigger_minus_func()
+RETURNS TRIGGER
+AS $$
+BEGIN
+	UPDATE iuser
+	SET my_tracks_count = my_tracks_count - 1
+	WHERE iuser.user_id =
+	(SELECT user_id FROM my_music WHERE mus_id = (SELECT MAX(mus_id) FROM my_music));
+
+	RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER mymus_count_trigger_minus
+BEFORE DELETE
+ON my_music
+FOR EACH ROW
+EXECUTE PROCEDURE mymus_count_trigger_minus_func();
+"""
 
 query = """
 CREATE TABLE album(
@@ -87,44 +127,6 @@ BEFORE DELETE
 ON track_list
 FOR EACH ROW
 EXECUTE PROCEDURE tracks_count_trigger_minus_func();
-
-CREATE OR REPLACE FUNCTION mymus_count_trigger_func()
-RETURNS TRIGGER
-AS $$
-BEGIN
-	UPDATE iuser 
-	SET my_tracks_count = my_tracks_count + 1 
-	WHERE iuser.user_id = 
-	(SELECT user_id FROM my_music WHERE mus_id = (SELECT MAX(mus_id) FROM my_music)); 
-	 
-	RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER mymus_count_trigger
-AFTER INSERT
-ON my_music
-FOR EACH ROW
-EXECUTE PROCEDURE mymus_count_trigger_func();
-
-CREATE OR REPLACE FUNCTION mymus_count_trigger_minus_func()
-RETURNS TRIGGER
-AS $$
-BEGIN
-	UPDATE iuser 
-	SET my_tracks_count = my_tracks_count - 1 
-	WHERE iuser.user_id = 
-	(SELECT user_id FROM my_music WHERE mus_id = (SELECT MAX(mus_id) FROM my_music));
-	 
-	RETURN OLD;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER mymus_count_trigger_minus
-BEFORE DELETE
-ON my_music
-FOR EACH ROW
-EXECUTE PROCEDURE mymus_count_trigger_minus_func();
 
 INSERT INTO author (name, years, country)
 VALUES

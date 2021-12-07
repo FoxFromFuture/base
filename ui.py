@@ -133,6 +133,13 @@ def runExit():
     exit()
 
 
+def createMusic():
+    cur.execute(main_query.my_music_query)
+    tables.append("my_music")
+    create_lib_button.destroy()
+    option.update_idletasks()
+
+
 def printTable(event=None):
     global current_state
     cur.execute(f"SELECT * FROM {event} LIMIT 0;")
@@ -153,13 +160,6 @@ def printTable(event=None):
         tab.heading(col, text=col, anchor=CENTER)
 
     iid_counter = 0
-    # if event == "track_list":
-    #     cur.execute(
-    #         "SELECT t_l.track_id AS Track_ID, t_l.track_title AS Title, al.album_title AS Album, t_l.duration AS Duration, aut.name AS Author FROM track_list t_l LEFT JOIN album al ON t_l.album_id = al.album_id LEFT JOIN author aut ON t_l.author_id = aut.author_id;")
-    # elif event == "my_music":
-    #     cur.execute(
-    #         "SELECT my.mus_id, iu.username, t_l.track_title FROM my_music my JOIN iuser iu ON my.user_id = iu.user_id JOIN track_list t_l ON my.track_id = t_l.track_id;")
-    # else:
     cur.execute(f"SELECT * FROM {event} ORDER BY {colnames[0]};")
     result = cur.fetchall()
     for col in result:
@@ -221,9 +221,9 @@ def connectToDatabase():
     entrance.destroy()
 
 
-# create db
 current_user = None
 
+# create db
 entrance = Tk()
 entrance.title("Logging...")
 entrance.geometry("300x150")
@@ -259,12 +259,18 @@ conn = psycopg2.connect(
     password='bool'
 )
 
+create_library_flag = None
+
 conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 cur = conn.cursor()
 cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
 tables = [table[0] for table in cur.fetchall()]
 
 current_state = "track_list"
+if "my_music" in tables:
+    create_library_flag = False
+else:
+    create_library_flag = True
 
 main = Tk()
 main.title("tunes")
@@ -298,8 +304,9 @@ find_in_button.pack(side=LEFT)
 exit_button = Button(option_frame, text="Exit", command=runExit, width=10)
 exit_button.pack(side=RIGHT)
 
-create_lib_button = Button(option_frame, text="Create library", command=hello, width=10)
-create_lib_button.pack(side=LEFT)
+if create_library_flag:
+    create_lib_button = Button(option_frame, text="Create library", command=createMusic, width=10)
+    create_lib_button.pack(side=LEFT)
 
 option_frame.pack(side=TOP, fill=X)
 
