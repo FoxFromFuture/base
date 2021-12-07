@@ -3,9 +3,11 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from tkinter import *
 from tkinter import ttk
 
+import main_query
 
-def hello(event=None):
-    print('hello')
+
+def hello():
+    print("hello")
 
 
 def runAdd():
@@ -15,6 +17,7 @@ def runAdd():
             entries_get.append(entries[i].get())
         entries_get = tuple(entries_get)
         cur.execute(f"INSERT INTO {current_state} {'(%s)' % ', '.join(map(str, colnames))} VALUES {entries_get};")
+        conn.commit()
         add_window.destroy()
         printTable(current_state)
 
@@ -59,6 +62,7 @@ def runEdit():
         query += f"WHERE {cond[0]} = {cond[1]};"
 
         cur.execute(query)
+        conn.commit()
         edit_window.destroy()
         printTable(current_state)
 
@@ -113,42 +117,20 @@ def runDelete():
     selected = list(tab.item(selected)['values'])
 
     cur.execute(f"DELETE FROM {current_state} WHERE {colnames[0]} = {selected[0]};")
+    conn.commit()
     printTable(current_state)
 
 
 def runClearAll():
     global current_state
 
-    cur.execute(f"DELETE * FROM {current_state}")
+    cur.execute(f"DELETE FROM {current_state};")
+    conn.commit()
     printTable(current_state)
 
 
 def runExit():
     exit()
-
-
-def connectToDatabase():
-    global flag_connect
-    try:
-        conn = psycopg2.connect(
-            host='localhost',
-            database='ifruits',
-            user='bool',
-            password='bool'
-        )
-    except psycopg2.OperationalError:
-        conn = psycopg2.connect(
-            host='localhost',
-            database='postgres',
-            user='bool',
-            password='bool'
-        )
-
-        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        cur = conn.cursor()
-        cur.execute("CREATE DATABASE ifruits;")
-    flag_connect = True
-    entrance.destroy()
 
 
 def printTable(event=None):
@@ -187,7 +169,61 @@ def printTable(event=None):
     current_state = event
 
 
+def connectToDatabase():
+    global flag_connect
+    global current_user
+
+    username = username_form.get()
+
+    try:
+        conn = psycopg2.connect(
+            host='localhost',
+            database='tunes',
+            user='bool',
+            password='bool'
+        )
+        cur = conn.cursor()
+    except psycopg2.OperationalError:
+        conn = psycopg2.connect(
+            host='localhost',
+            database='postgres',
+            user='bool',
+            password='bool'
+        )
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = conn.cursor()
+        cur.execute("CREATE DATABASE tunes;")
+        conn.commit()
+        cur.close()
+        conn = psycopg2.connect(
+            host='localhost',
+            database='tunes',
+            user='bool',
+            password='bool'
+        )
+        cur = conn.cursor()
+        cur.execute(main_query.query)
+        conn.commit()
+        cur.execute(f"INSERT INTO iuser(username, email, passwd, phone, country, my_tracks_count)"
+                    f"VALUES ('{username}', '*mail*_{username}', '*passwd*_{username}', '*number*_{username}', "
+                    f"'*country*_{username}', 0);")
+        conn.commit()
+        cur.close()
+    else:
+        cur.execute(f"SELECT * FROM iuser WHERE username = '{username}'")
+        if len(cur.fetchall()) != 1:
+            cur.execute(f"INSERT INTO iuser(username, email, passwd, phone, country, my_tracks_count)"
+                        f"VALUES ('{username}', '*mail*_{username}', '*passwd*_{username}', '*number*_{username}', "
+                        f"'*country*_{username}', 0);")
+            conn.commit()
+    flag_connect = True
+    current_user = username
+    entrance.destroy()
+
+
 # create db
+current_user = None
+
 entrance = Tk()
 entrance.title("Logging...")
 entrance.geometry("300x150")
@@ -197,13 +233,19 @@ flag_connect = False
 
 entrance_frame = Frame(entrance)
 
-login_button = Button(entrance_frame, text="Log in to the database", command=connectToDatabase)
-login_button.pack(anchor=CENTER)
+username_label = Label(entrance_frame, text="username", font="Arial 9")
+username_label.pack(anchor=CENTER)
+
+username_form = Entry(entrance_frame, width=20, font="Arial 9")
+username_form.pack(anchor=CENTER)
+
+login_button = Button(entrance_frame, text="Log in", command=connectToDatabase)
+login_button.pack(anchor=CENTER, pady=5)
 
 hint_text = Label(text="NOTE: If database doesn't exist, it would be created", font="Arial 9")
 hint_text.pack(side=BOTTOM)
 
-entrance_frame.pack(side=TOP, expand=True)
+entrance_frame.pack(expand=True)
 
 entrance.mainloop()
 
@@ -212,7 +254,7 @@ if not flag_connect:
 
 conn = psycopg2.connect(
     host='localhost',
-    database='ifruits',
+    database='tunes',
     user='bool',
     password='bool'
 )
@@ -222,7 +264,6 @@ cur = conn.cursor()
 cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
 tables = [table[0] for table in cur.fetchall()]
 
-current_user = None
 current_state = "track_list"
 
 main = Tk()
@@ -248,14 +289,17 @@ edit_button.pack(side=LEFT)
 delete_button = Button(option_frame, text="Delete", command=runDelete, width=10)
 delete_button.pack(side=LEFT)
 
-add_button = Button(option_frame, text="Clear all", command=runClearAll, width=10)
-add_button.pack(side=LEFT)
+clear_all_button = Button(option_frame, text="Clear all", command=runClearAll, width=10)
+clear_all_button.pack(side=LEFT)
 
-add_button = Button(option_frame, text="Find in", command=hello, width=10)
-add_button.pack(side=LEFT)
+find_in_button = Button(option_frame, text="Find in", command=hello, width=10)
+find_in_button.pack(side=LEFT)
 
 exit_button = Button(option_frame, text="Exit", command=runExit, width=10)
 exit_button.pack(side=RIGHT)
+
+create_lib_button = Button(option_frame, text="Create library", command=hello, width=10)
+create_lib_button.pack(side=LEFT)
 
 option_frame.pack(side=TOP, fill=X)
 
@@ -276,6 +320,7 @@ tab.pack(fill=BOTH, expand=1)
 tree_frame.pack(side=TOP, fill=BOTH, expand=1)
 
 print(current_state)
+print(current_user)
 printTable(current_state)
 main.mainloop()
 cur.close()
