@@ -1,7 +1,8 @@
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import tkinter
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, _setit
 
 import main_query
 
@@ -129,19 +130,42 @@ def runClearAll():
     printTable(current_state)
 
 
-def runExit():
-    exit()
+def updateOptions():
+    global current_state
+
+    choose.set("")
+    option["menu"].delete(0, "end")
+    for choice in tables:
+        option["menu"].add_command(label=choice, command=lambda i=choice: printTable(i))
+    choose.set(current_state)
 
 
-def createMusic():
-    cur.execute(main_query.my_music_query)
+def createMyMusic():
+    global current_state
+    global current_user
+    global create_library_flag
+
+    if create_library_flag:
+        cur.execute(main_query.my_music_query)
+        create_lib_button.destroy()
+    else:
+        create_lib_button.destroy()
+
+    cur.execute(f"UPDATE iuser SET libflag = 'TRUE' WHERE username = '{current_user}'")
+    conn.commit()
+
     tables.append("my_music")
-    create_lib_button.destroy()
-    option.update_idletasks()
+    updateOptions()
+
+
+def runExit():
+    cur.close()
+    exit()
 
 
 def printTable(event=None):
     global current_state
+
     cur.execute(f"SELECT * FROM {event} LIMIT 0;")
     colnames = [cols[0] for cols in cur.description]
     print(colnames)
@@ -269,6 +293,7 @@ tables = [table[0] for table in cur.fetchall()]
 current_state = "track_list"
 if "my_music" in tables:
     create_library_flag = False
+    tables.remove("my_music")
 else:
     create_library_flag = True
 
@@ -281,7 +306,7 @@ main.iconphoto(False, PhotoImage(file="src/logo.png"))
 option_frame = Frame(main)
 
 choose = StringVar(main)
-choose.set("Table")
+choose.set(current_state)
 option = OptionMenu(option_frame, choose, *tables, command=printTable)
 option.pack(side=LEFT)
 
@@ -304,9 +329,13 @@ find_in_button.pack(side=LEFT)
 exit_button = Button(option_frame, text="Exit", command=runExit, width=10)
 exit_button.pack(side=RIGHT)
 
-if create_library_flag:
-    create_lib_button = Button(option_frame, text="Create library", command=createMusic, width=10)
+cur.execute(f"SELECT libflag FROM iuser WHERE username = '{current_user}'")
+if not cur.fetchall()[0][0]:
+    create_lib_button = Button(option_frame, text="Create library", command=createMyMusic, width=10)
     create_lib_button.pack(side=LEFT)
+else:
+    tables.append("my_music")
+    updateOptions()
 
 option_frame.pack(side=TOP, fill=X)
 
@@ -331,4 +360,4 @@ print(current_user)
 printTable(current_state)
 main.mainloop()
 cur.close()
-print("Ended")
+print("Finished")
