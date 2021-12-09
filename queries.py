@@ -134,7 +134,7 @@ VALUES
 
 INSERT INTO album (album_title, release_year, genre, tracks_count)
 VALUES
-('After Hours', '2020-03-20', 'R&B/Soul', 14);
+('After Hours', '2020-03-20', 'R&B/Soul', 0);
 
 INSERT INTO track_list (track_title, album_id, duration, author_id)
 VALUES
