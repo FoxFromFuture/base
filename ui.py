@@ -1,8 +1,7 @@
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-import tkinter
 from tkinter import *
-from tkinter import ttk, _setit
+from tkinter import ttk
 
 import main_query
 
