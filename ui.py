@@ -129,6 +129,53 @@ def runClearAll():
     printTable(current_state)
 
 
+def runFindIn():
+    def find():
+        for item in tab.get_children():
+            tab.delete(item)
+
+        tab.heading("#0", text="")
+        tab.column("#0", anchor=W, width=0, stretch=False)
+
+        tab["columns"] = colnames
+
+        for col in colnames:
+            tab.column(col)
+        for col in colnames:
+            tab.heading(col, text=col, anchor=CENTER)
+
+        cur.execute(f"SELECT * FROM {current_state} WHERE {find_in_choose.get()} = '{find_in_entry.get()}'")
+        result = cur.fetchall()
+        for col in result:
+            tab.insert(parent='', index='end', text='', values=list(col))
+
+        find_in_window.destroy()
+
+    global current_state
+
+    cur.execute(f"SELECT * FROM {current_state} LIMIT 0;")
+    colnames = [cols[0] for cols in cur.description]
+
+    find_in_window = Toplevel(main)
+    find_in_window.title("Find in")
+    find_in_window.resizable(False, False)
+    find_in_window.iconphoto(False, PhotoImage(file="src/logo.png"))
+
+    find_in_choose = StringVar(find_in_window)
+    find_in_choose.set(colnames[0])
+    find_in_option = OptionMenu(find_in_window, find_in_choose, *colnames)
+    find_in_option.pack(side=TOP)
+
+    find_in_text = Label(find_in_window, text="request")
+    find_in_text.pack(side=LEFT)
+
+    find_in_entry = Entry(find_in_window, width=20, font="Arial 9")
+    find_in_entry.pack(side=LEFT)
+
+    f_button = Button(find_in_window, text="Search", command=find)
+    f_button.pack(side=LEFT, padx=5)
+
+
 def updateOptions():
     global current_state
 
@@ -175,19 +222,21 @@ def printTable(event=None):
     tab.heading("#0", text="")
     tab.column("#0", anchor=W, width=0, stretch=False)
 
-    tab['columns'] = colnames
+    tab["columns"] = colnames
 
     for col in colnames:
         tab.column(col)
     for col in colnames:
         tab.heading(col, text=col, anchor=CENTER)
 
-    iid_counter = 0
+    # if current_state == "my_music":
+    #     pass
+    #     cur.execute(f"SELECT * FROM {event} WHERE ")
+    # else:
     cur.execute(f"SELECT * FROM {event} ORDER BY {colnames[0]};")
     result = cur.fetchall()
     for col in result:
-        tab.insert(parent='', index='end', text='', iid=iid_counter, values=list(col))
-        iid_counter += 1
+        tab.insert(parent='', index='end', text='', values=list(col))
 
     current_state = event
 
@@ -195,6 +244,9 @@ def printTable(event=None):
 def connectToDatabase():
     global flag_connect
     global current_user
+
+    if username_form.get() == "":
+        return
 
     username = username_form.get()
 
@@ -322,7 +374,7 @@ delete_button.pack(side=LEFT)
 clear_all_button = Button(option_frame, text="Clear all", command=runClearAll, width=10)
 clear_all_button.pack(side=LEFT)
 
-find_in_button = Button(option_frame, text="Find in", command=hello, width=10)
+find_in_button = Button(option_frame, text="Find in", command=runFindIn, width=10)
 find_in_button.pack(side=LEFT)
 
 exit_button = Button(option_frame, text="Exit", command=runExit, width=10)
