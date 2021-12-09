@@ -3,7 +3,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from tkinter import *
 from tkinter import ttk
 
-import main_query
+import queries
 
 
 def hello():
@@ -145,7 +145,7 @@ def createMyMusic():
     global create_library_flag
 
     if create_library_flag:
-        cur.execute(main_query.my_music_query)
+        cur.execute(queries.my_music_query)
         create_lib_button.destroy()
     else:
         create_lib_button.destroy()
@@ -225,7 +225,7 @@ def connectToDatabase():
             password='bool'
         )
         cur = conn.cursor()
-        cur.execute(main_query.query)
+        cur.execute(queries.main_query)
         conn.commit()
         cur.execute(f"INSERT INTO iuser(username, email, passwd, phone, country, my_tracks_count)"
                     f"VALUES ('{username}', '*mail*_{username}', '*passwd*_{username}', '*number*_{username}', "
