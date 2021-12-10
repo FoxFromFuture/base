@@ -236,7 +236,7 @@ def printTable(event=None):
     cur.execute(f"SELECT * FROM {event} ORDER BY {colnames[0]};")
     result = cur.fetchall()
     for col in result:
-        tab.insert(parent='', index='end', text='', values=list(col))
+        tab.insert(parent="", index="end", text="", values=list(col))
 
     current_state = event
 
@@ -252,18 +252,18 @@ def connectToDatabase():
 
     try:
         conn = psycopg2.connect(
-            host='localhost',
-            database='tunes',
-            user='bool',
-            password='bool'
+            host="localhost",
+            database="tunes",
+            user="bool",
+            password="bool"
         )
         cur = conn.cursor()
     except psycopg2.OperationalError:
         conn = psycopg2.connect(
-            host='localhost',
-            database='postgres',
-            user='bool',
-            password='bool'
+            host="localhost",
+            database="postgres",
+            user="bool",
+            password="bool"
         )
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cur = conn.cursor()
@@ -271,10 +271,10 @@ def connectToDatabase():
         conn.commit()
         cur.close()
         conn = psycopg2.connect(
-            host='localhost',
-            database='tunes',
-            user='bool',
-            password='bool'
+            host="localhost",
+            database="tunes",
+            user="bool",
+            password="bool"
         )
         cur = conn.cursor()
         cur.execute(queries.main_query)
@@ -328,10 +328,10 @@ if not flag_connect:
     exit(0)
 
 conn = psycopg2.connect(
-    host='localhost',
-    database='tunes',
-    user='bool',
-    password='bool'
+    host="localhost",
+    database="tunes",
+    user="bool",
+    password="bool"
 )
 
 create_library_flag = None
