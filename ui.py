@@ -182,6 +182,7 @@ def runFindIn():
 
 def updateOptions():
     global current_state
+    global choose
 
     choose.set("")
     option["menu"].delete(0, "end")
@@ -216,6 +217,7 @@ def runExit():
 def printTable(event=None):
     global current_state
     global current_user
+    global choose
 
     cur.execute(f"SELECT * FROM {event} LIMIT 0;")
     colnames = [cols[0] for cols in cur.description]
@@ -244,6 +246,7 @@ def printTable(event=None):
         tab.insert(parent="", index="end", text="", values=list(col))
 
     current_state = event
+    choose.set(current_state)
 
 
 def connectToDatabase():
