@@ -53,6 +53,8 @@ def runAdd():
 
 def runEdit():
     def edit():
+        global current_user
+
         query = f"UPDATE {current_state} SET "
         for i in range(len(colnames)):
             if i == len(colnames) - 1:
@@ -61,6 +63,8 @@ def runEdit():
                 query += f"{colnames[i]} = '{entries[i].get()}', "
         query += f"WHERE {cond[0]} = {cond[1]};"
 
+        if current_state == "iuser":
+            current_user = entries[0].get()
         cur.execute(query)
         conn.commit()
         edit_window.destroy()
@@ -144,7 +148,7 @@ def runFindIn():
         for col in colnames:
             tab.heading(col, text=col, anchor=CENTER)
 
-        cur.execute(f"SELECT * FROM {current_state} WHERE {find_in_choose.get()} = '{find_in_entry.get()}'")
+        cur.execute(f"SELECT * FROM {current_state} WHERE {find_in_choose.get()} LIKE '%{find_in_entry.get()}%'")
         result = cur.fetchall()
         for col in result:
             tab.insert(parent='', index='end', text='', values=list(col))
@@ -211,6 +215,7 @@ def runExit():
 
 def printTable(event=None):
     global current_state
+    global current_user
 
     cur.execute(f"SELECT * FROM {event} LIMIT 0;")
     colnames = [cols[0] for cols in cur.description]
@@ -229,11 +234,11 @@ def printTable(event=None):
     for col in colnames:
         tab.heading(col, text=col, anchor=CENTER)
 
-    # if current_state == "my_music":
-    #     pass
-    #     cur.execute(f"SELECT * FROM {event} WHERE ")
-    # else:
-    cur.execute(f"SELECT * FROM {event} ORDER BY {colnames[0]};")
+    if event == "my_music":
+        cur.execute(
+            f"SELECT * FROM {event} JOIN iuser ON {event}.user_id = iuser.user_id WHERE iuser.username = '{current_user}';")
+    else:
+        cur.execute(f"SELECT * FROM {event} ORDER BY {colnames[0]};")
     result = cur.fetchall()
     for col in result:
         tab.insert(parent="", index="end", text="", values=list(col))
